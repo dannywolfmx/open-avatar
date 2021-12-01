@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <style>
+        body{
+            background-color: chartreuse;
+        }
+	img{
+	object-fit: contain;
+	}
+        #activo, #inactivo, img{
+            width: 256px;
+            height: 256px;
+        }
+        #activo{
+            animation: shake 0.5s;
+            animation-iteration-count: infinite;
+        }
+        @keyframes shake {
+          0% { transform: translate(1px, 1px) rotate(0deg); }
+          10% { transform: translate(-1px, -2px) rotate(-1deg); }
+          20% { transform: translate(-3px, 0px) rotate(1deg); }
+          30% { transform: translate(3px, 2px) rotate(0deg); }
+          40% { transform: translate(1px, -1px) rotate(1deg); }
+          50% { transform: translate(-1px, 2px) rotate(-1deg); }
+          60% { transform: translate(-3px, 1px) rotate(0deg); }
+          70% { transform: translate(3px, 1px) rotate(-1deg); }
+          80% { transform: translate(-1px, -1px) rotate(1deg); }
+          90% { transform: translate(1px, 2px) rotate(0deg); }
+          100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+    </style>
+    <div id="activo" hidden>
+        <img src="./avatar.png">
+    </div>
+    <div id="inactivo" hidden>
+        <img src="./avatar.png">
+    </div>
+    <script>
+        const nodoActivo = document.getElementById("activo") 
+        const nodoInactivo = document.getElementById("inactivo") 
+    
+      const handleSuccess = function(stream) {
+        analizerMicrophone(stream)
+      };
+
+      //Reference: https://stackoverflow.com/questions/33322681/checking-microphone-volume-in-javascript 
+      const analizerMicrophone = function(stream){
+          audioContext = new AudioContext();
+          analyzer = audioContext.createAnalyser();
+
+          microphone = audioContext.createMediaStreamSource(stream);
+          node = audioContext.createScriptProcessor(2048,1,1);
+
+          analyzer.smoothingTimeConstant = 0.8;
+          analyzer.fftSize = 1024;
+
+          microphone.connect(analyzer)
+          analyzer.connect(node)
+
+          node.connect(audioContext.destination)
+          node.onaudioprocess = function(){
+              let intArray = new Uint8Array(analyzer.frequencyBinCount);
+              analyzer.getByteFrequencyData(intArray)
+              let values = 0;
+
+              let len = intArray.length;
+              for(let i = 0; i< len; i++){
+                  values += (intArray[i])
+              }
+
+              let average = values / len
+
+              //Draw image
+              coloreaCanvas(Math.round(average))
+          }
+      }
+
+     const coloreaCanvas = (average) => {
+            //Microfono inactivo
+
+        if (20<average){
+            nodoActivo.hidden = false
+            nodoInactivo.hidden = true
+        }else{
+            //Microfono activo
+            nodoActivo.hidden = true
+            nodoInactivo.hidden = false
+        }
+      }
+    
+      navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+          .then(handleSuccess).catch(err =>{
+              console.error("Error: ",err)
+          });
+    </script> 
+</body>
+</html>
